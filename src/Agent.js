@@ -11,6 +11,7 @@ function Agent(){
   this.bullets = 0;
   this.space_pressed = false;
   this.poly = [];
+  this.net = null;
   this.render = function(){
     if(this.dead) return;
     //translate(this.pos.x, this.pos.y);
@@ -43,8 +44,11 @@ function Agent(){
       this.poly[i].add(this.pos);
     }
   }
-  this.update = function(){
+  this.update = function(state){
     if(this.dead) return;
+    if(!this.human){
+      this.getAction(state);
+    }
     this.turn();
     this.vel.mult(0.99);
     var force = p5.Vector.fromAngle(this.angle);
@@ -70,6 +74,18 @@ function Agent(){
     if(this.space_pressed){
       this.shoot();
     }
+  }
+  this.getAction = function(state){
+    state = new convnetjs.Vol(state);
+    var output = this.net.forward(state).w;
+    //console.log(output);
+    if(output[0] < -0.5) this.rotation = -turn_speed; //left
+    if(abs(output[0]) <= 0.5) this.rotation = 0; //dont turn
+    if(output[0] > 0.5) this.rotation = turn_speed; //right
+    if(output[1] > 0) this.accelation = accelation; //right
+    else this.accelation = 0;
+    if(output[2] > 0) this.space_pressed = true; //right
+    else this.space_pressed = false;
   }
 }
 

@@ -1,6 +1,6 @@
 //constants
-const canvas_width = 800;
-const canvas_height = 600;
+const canvas_width = 1100;
+const canvas_height = 800;
 const turn_speed = 0.1;
 const accelation = 0.08;
 const max_bullets = 5;
@@ -9,16 +9,35 @@ const bullet_speed = 7;
 const bullet_radius = 10;
 
 var player;
+var humanPlaying = false;
 var bullets = new Set();
 var agents = [];
 
 function setup() {
   createCanvas(canvas_width, canvas_height);
   player = new Agent();
-  for(var i = 0; i < 1; i++){
+  var Chrome = new Chromosome();
+  //console.log(Chrome.gene);
+  var Pop = new Population();
+  Pop.randomPopulation();
+  testPopulation(Pop);
+  //console.log(getState(agents[0]));
+  //nn();
+}
+
+function testPopulation(population){
+  resetEnvorionment();
+  var radius = min(canvas_height, canvas_height) / 2 - 40;
+  for(var i = 0; i < population.Chromosomes.length; i++){
+    var chromosome = population.Chromosomes[i];
     var agent = new Agent();
+    var angle = 2 * PI * i / population.Chromosomes.length;
     agent.id = i + 1;
-    agent.pos = createVector(canvas_width / 4, canvas_height / 4);
+    agent.angle = angle + PI;
+    agent.net = chromosome.geneToNet();
+    agent.pos = createVector(cos(angle) * radius, sin(angle) * radius);
+    agent.pos.add(createVector(canvas_width / 2, canvas_height / 2));
+    //console.log(agent);
     agents.push(agent);
   }
 }
@@ -65,8 +84,7 @@ function checkCollisions(){
       }
     }
     for(var bullet of bullets){
-      //console.log(bullet);
-      if(bullet.creator != agents[i].id && collideCirclePoly(bullet.pos.x, bullet.pos.y, bullet_radius * 2,agent_poly)){
+      if(bullet.creator != agents[i].id && collideCirclePoly(bullet.pos.x, bullet.pos.y, bullet_radius * 2, agent_poly)){
         agents[i].kill();
         bullets.delete(bullet);
         break;
@@ -75,9 +93,67 @@ function checkCollisions(){
   }
 }
 
+function resetEnvorionment(){
+  agents = [];
+  bullets = new Set();
+
+}
+
+function distance(object1, object2){ //returns square of distance
+  var dist = 0;
+  dist += (object1.pos.x - object2.pos.x) * (object1.pos.x - object2.pos.x);
+  dist += (object1.pos.y - object2.pos.y) * (object1.pos.y - object2.pos.y);
+  return dist;
+}
+
+function getPosVel(object){ //helper
+  var state = [];
+  state.push(object.pos.x);
+  state.push(object.pos.y);
+  state.push(object.vel.x);
+  state.push(object.vel.y);
+  return state;
+}
+
+function getState(agent){ //array length 13
+  //num bullets, agent pos + vel, closest agent pos + vel, closest bullet pos + vel
+  var state = [];
+  state.push(agent.bullets);
+  state.push.apply(state, getPosVel(agent));
+  var minDist = -1;
+  var closest = null;
+  for(var i = 0; i < agents.length; i++){
+    if(agents[i] == agent) continue;
+    if(minDist == -1 || distance(agent, agents[i]) < minDist){
+      minDist = distance(agent, agents[i]);
+      closest = agents[i];
+    }
+  }
+  if(closest){
+    state.push.apply(state, getPosVel(closest));
+  } else{ //shouldnt happen, game is over
+    state.push.apply(state, [0, 0, 0, 0]);
+  }
+  minDist = -1;
+  closest = null;
+  bullets.forEach(function(bullet){
+    if(minDist == -1 || distance(agent, bullet) < minDist){
+      minDist = distance(agent, bullet);
+      closest = bullet;
+    }
+  })
+  if(closest){
+    state.push.apply(state, getPosVel(closest));
+  } else{
+    state.push.apply(state, [0, 0, 0, 0]);
+  }
+  return state;
+}
+
 function update() {
-  agents.push(player);
+  if(humanPlaying) agents.push(player);  
   agents.forEach(function(agent){
+    var state = getState(agent);
     agent.update();
     agent.render();
   })
@@ -86,12 +162,13 @@ function update() {
     bullet.render();
   })
   checkCollisions();
-  agents.pop();
+  if(humanPlaying) agents.pop();
 }
 
 function draw() {
   background(255);
+  rect(0, 0, canvas_width - 1, canvas_height - 1);
   update();
-  player.render();
+  if(humanPlaying) player.render();
 
 }
