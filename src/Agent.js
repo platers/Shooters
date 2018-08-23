@@ -10,6 +10,7 @@ function Agent(){
   this.accelation = 0;
   this.bullets = 0;
   this.space_pressed = false;
+  this.score = 0;
   this.poly = [];
   this.net = null;
   this.render = function(){
@@ -32,7 +33,7 @@ function Agent(){
   }
   this.kill = function(){
     this.dead = true;
-    console.log("Agent " + this.id + " has been killed");
+    //console.log("Agent " + this.id + " has been killed");
   }
   this.calculatePoly = function(){
 
@@ -43,6 +44,24 @@ function Agent(){
       this.poly[i].rotate(this.angle + PI / 2);
       this.poly[i].add(this.pos);
     }
+  }
+  this.copy = function(){
+    var a = new Agent();
+    a.id = this.id;
+    a.dead = this.dead;
+    a.human = this.human;
+    a.pos = this.pos;
+    a.vel = this.vel;
+    a.rotation = this.rotation;
+    a.s = this.s;  //ship size
+    a.angle = this.angle;
+    a.accelation = this.accelation;
+    a.bullets = this.bullets;
+    a.space_pressed = this.space_pressed;
+    a.score = this.score;
+    a.poly = this.poly;
+    a.net = this.net;
+    return a;
   }
   this.update = function(state){
     if(this.dead) return;
@@ -68,7 +87,7 @@ function Agent(){
     if(this.pos.y < 0){
       this.pos.y = canvas_height;
     }
-    if(frameCount % 20 == 0 && this.bullets < max_bullets){
+    if(frame % 20 == 0 && this.bullets < max_bullets){
       this.bullets++;
     }
     if(this.space_pressed){
@@ -79,9 +98,9 @@ function Agent(){
     state = new convnetjs.Vol(state);
     var output = this.net.forward(state).w;
     //console.log(output);
-    if(output[0] < -0.5) this.rotation = -turn_speed; //left
-    if(abs(output[0]) <= 0.5) this.rotation = 0; //dont turn
-    if(output[0] > 0.5) this.rotation = turn_speed; //right
+    if(output[0] < -0.1) this.rotation = -turn_speed; //left
+    if(abs(output[0]) <= 0.1) this.rotation = 0; //dont turn
+    if(output[0] > 0.1) this.rotation = turn_speed; //right
     if(output[1] > 0) this.accelation = accelation; //right
     else this.accelation = 0;
     if(output[2] > 0) this.space_pressed = true; //right

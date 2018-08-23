@@ -7,39 +7,99 @@ const max_bullets = 5;
 const ship_size = 20;
 const bullet_speed = 7;
 const bullet_radius = 10;
+const batch_size = 5;
 
 var player;
 var humanPlaying = false;
 var bullets = new Set();
 var agents = [];
 
+var Pop = null;
+
 function setup() {
   createCanvas(canvas_width, canvas_height);
   player = new Agent();
-  var Chrome = new Chromosome();
-  //console.log(Chrome.gene);
-  var Pop = new Population();
+  Pop = new Population();
   Pop.randomPopulation();
-  testPopulation(Pop);
-  //console.log(getState(agents[0]));
-  //nn();
+}
+var currentBest = [];
+const numgenerations = 2;
+var current_generation = 0;
+
+function train(){
+  for(var i = 0; i < numgenerations; i++){
+    current_generation++;
+    console.log("Training generation " + current_generation);
+    var relFitness = testPopulation(Pop);
+    var chromosomes = [];
+    currentBest = [];
+    for(var j = 0; j < relFitness.length; j++){
+      chromosomes.push(Pop.Chromosomes[j]);
+      currentBest.push(agentFromChromosome(Pop.Chromosomes[j], j));
+    }
+    Pop.newGeneration(chromosomes);
+  }
 }
 
-function testPopulation(population){
-  resetEnvorionment();
+function agentFromChromosome(chromosome, index){
+  var agent = new Agent();
+  var angle = index * 2 * PI / batch_size;
   var radius = min(canvas_height, canvas_height) / 2 - 40;
+  agent.id = index;
+  agent.angle = angle + PI;
+  agent.net = chromosome.geneToNet();
+  agent.pos = createVector(cos(angle) * radius, sin(angle) * radius);
+  agent.pos.add(createVector(canvas_width / 2, canvas_height / 2));
+  return agent;
+}
+const steps = 300;
+var frame = 0;
+function testPopulation(population){
+  var relFitness = []
   for(var i = 0; i < population.Chromosomes.length; i++){
     var chromosome = population.Chromosomes[i];
-    var agent = new Agent();
-    var angle = 2 * PI * i / population.Chromosomes.length;
-    agent.id = i + 1;
-    agent.angle = angle + PI;
-    agent.net = chromosome.geneToNet();
-    agent.pos = createVector(cos(angle) * radius, sin(angle) * radius);
-    agent.pos.add(createVector(canvas_width / 2, canvas_height / 2));
-    //console.log(agent);
-    agents.push(agent);
+    var batch = [];
+    batch.push(agentFromChromosome(chromosome, 0));
+    for(var j = 1; j <= batch_size - 1; j++){
+      chromosome = population.Chromosomes[Math.floor(Math.random() * population.Chromosomes.length)];
+      batch.push(agentFromChromosome(chromosome, j));
+    }
+    var fitness = simulate(batch, steps);
+    relFitness.push(fitness);
   }
+  var best = fittest(relFitness);
+  return best;
+}
+
+function fittest(relFitness){
+  var arr = [];
+  for(var i = 0; i < relFitness.length; i++){
+    arr.push([relFitness[i], i]);
+  }
+  function cmp(a, b){
+    return a[0] > b[0];
+  }
+  arr.sort(cmp);
+  var best = [];
+  for(var i = 0; i < relFitness.length * 0.2; i++){
+    best.push(arr[i][1]);
+  }
+  return best;
+}
+
+function simulate(batch, steps){
+  resetEnvorionment();
+  agents = batch;
+  frame = 0;
+  for(var i = 0; i < steps; i++){
+    //drawBackground();
+    update();
+    if(agents[0].dead){
+      break;
+    }
+  }
+  //console.log(agents[0].score);
+  return agents[0].score;
 }
 
 function keyPressed(){
@@ -86,6 +146,7 @@ function checkCollisions(){
     for(var bullet of bullets){
       if(bullet.creator != agents[i].id && collideCirclePoly(bullet.pos.x, bullet.pos.y, bullet_radius * 2, agent_poly)){
         agents[i].kill();
+        agents[bullet.creator].score++;
         bullets.delete(bullet);
         break;
       }
@@ -150,25 +211,63 @@ function getState(agent){ //array length 13
   return state;
 }
 
+function drawBackground(){
+  background(255);
+  rect(0, 0, canvas_width - 1, canvas_height - 1);
+}
+
 function update() {
+  var numAlive = 0;
   if(humanPlaying) agents.push(player);  
   agents.forEach(function(agent){
     var state = getState(agent);
-    agent.update();
-    agent.render();
+    agent.update(state);
+    if(!agent.dead) numAlive++;
+    //agent.render();
   })
   bullets.forEach(function(bullet){
     bullet.update();
-    bullet.render();
+    //bullet.render();
   })
   checkCollisions();
   if(humanPlaying) agents.pop();
+  frame++;
+ //console.log(numAlive);
+  if(numAlive < 2) return false;
+  else return true;
 }
 
-function draw() {
-  background(255);
-  rect(0, 0, canvas_width - 1, canvas_height - 1);
-  update();
-  if(humanPlaying) player.render();
+function initGame(){
+  resetEnvorionment();
+  frame = 0;
+  agents = [];
+  for(var i = 0; i < currentBest.length; i++){
+    agents.push(currentBest[i].copy());
+  }
+}
 
+function render(){
+  drawBackground();
+  if(humanPlaying) agents.push(player);  
+  agents.forEach(function(agent){
+    agent.render();
+  })
+  bullets.forEach(function(bullet){
+    bullet.render();
+  })
+  if(humanPlaying) agents.pop();
+}
+var gameRunning = false;
+
+function draw() {
+  if(!gameRunning || frame > 60 * 5){
+    train();
+    initGame();
+    gameRunning = true;
+  }
+  gameRunning = update();
+  //console.log(gameRunning);
+  render();
+  if(humanPlaying) player.render();
+  
 }
