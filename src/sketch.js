@@ -3,11 +3,11 @@ const canvas_width = 1100;
 const canvas_height = 800;
 const turn_speed = 0.1;
 const accelation = 0.08;
-const max_bullets = 5;
+const max_bullets = 0;
 const ship_size = 20;
 const bullet_speed = 7;
 const bullet_radius = 10;
-const batch_size = 5;
+const batch_size = 6;
 
 var player;
 var humanPlaying = false;
@@ -23,7 +23,7 @@ function setup() {
   Pop.randomPopulation();
 }
 var currentBest = [];
-const numgenerations = 2;
+const numgenerations = 1;
 var current_generation = 0;
 
 function train(){
@@ -68,6 +68,7 @@ function testPopulation(population){
     relFitness.push(fitness);
   }
   var best = fittest(relFitness);
+  console.log(relFitness[best[0]]);
   return best;
 }
 
@@ -139,6 +140,8 @@ function checkCollisions(){
     for(var j = 0; j < agents.length; j++){
       if(i == j || agents[j].dead) continue;
       if(collidePolyPoly(agent_poly, agents[j].poly)){
+        agents[i].score++;
+        agents[j].score++;
         agents[i].kill();
         agents[j].kill();
       }
@@ -146,7 +149,8 @@ function checkCollisions(){
     for(var bullet of bullets){
       if(bullet.creator != agents[i].id && collideCirclePoly(bullet.pos.x, bullet.pos.y, bullet_radius * 2, agent_poly)){
         agents[i].kill();
-        agents[bullet.creator].score++;
+        //agents[i].score -= 3;
+        //agents[bullet.creator].score++;
         bullets.delete(bullet);
         break;
       }
@@ -241,7 +245,7 @@ function initGame(){
   resetEnvorionment();
   frame = 0;
   agents = [];
-  for(var i = 0; i < currentBest.length; i++){
+  for(var i = 0; i < min(currentBest.length, batch_size); i++){
     agents.push(currentBest[i].copy());
   }
 }

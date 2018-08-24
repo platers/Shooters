@@ -98,10 +98,10 @@ function Agent(){
     state = new convnetjs.Vol(state);
     var output = this.net.forward(state).w;
     //console.log(output);
-    if(output[0] < -0.1) this.rotation = -turn_speed; //left
-    if(abs(output[0]) <= 0.1) this.rotation = 0; //dont turn
-    if(output[0] > 0.1) this.rotation = turn_speed; //right
-    if(output[1] > 0) this.accelation = accelation; //right
+    if(output[0] < -0.2) this.rotation = -turn_speed; //left
+    if(abs(output[0]) <= 0.2) this.rotation = 0; //dont turn
+    if(output[0] > 0.2) this.rotation = turn_speed; //right
+    if(output[1] > 0) this.accelation = accelation; 
     else this.accelation = 0;
     if(output[2] > 0) this.space_pressed = true; //right
     else this.space_pressed = false;

@@ -19,10 +19,17 @@ function Chromosome(net) {
     return net;
   }
   this.mutate = function () {
-
+    var n = this.gene.length;
+    for(var i = 0; i <= n; i++){
+      this.gene[i] = randomNoise(this.gene[i]);
+    }
   }
-  this.crossover = function (chromosome) {
-    return chromosome;
+  this.crossover = function (chromosome) {  //simple 1 point
+    var n = chromosome.gene.length;
+    var idx = Math.floor(Math.random() * n);  //idx is crossover point
+    for(var i = 0; i <= idx; i++){
+      this.gene[i] = chromosome.gene[i];
+    }
   }
   this.copy = function(){
     var copy = new Chromosome();
@@ -91,7 +98,7 @@ function Chromosome(net) {
   else this.gene = this.netToGene(this.randomNet());
 }
 
-const PopulationSize = 20;
+const PopulationSize = 40;
 
 function Population() {
   this.Chromosomes = [];
@@ -108,14 +115,15 @@ function Population() {
     while(this.Chromosomes.length < PopulationSize){
       var a = randomElement(chromosomes).copy();
       var b = randomElement(chromosomes).copy();
-      a.crossover(b)
-      //a.mutate();
+      a.crossover(b);
+      a.mutate();
       this.Chromosomes.push(a);
     }
   }
-  this.testPopulation = function () {
-        
-  }
+}
+
+function randomNoise(x){
+  return x += convnetjs.randn(0.0, 0.3);
 }
 
 function randomElement(array){
