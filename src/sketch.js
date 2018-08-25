@@ -3,7 +3,7 @@ const canvas_width = 1100;
 const canvas_height = 800;
 const turn_speed = 0.1;
 const accelation = 0.08;
-const max_bullets = 0;
+const max_bullets = 4;
 const ship_size = 20;
 const bullet_speed = 7;
 const bullet_radius = 10;
@@ -34,8 +34,8 @@ function train(){
     var chromosomes = [];
     currentBest = [];
     for(var j = 0; j < relFitness.length; j++){
-      chromosomes.push(Pop.Chromosomes[j]);
-      currentBest.push(agentFromChromosome(Pop.Chromosomes[j], j));
+      chromosomes.push(Pop.Chromosomes[relFitness[j]]);
+      currentBest.push(agentFromChromosome(Pop.Chromosomes[relFitness[j]], j));
     }
     Pop.newGeneration(chromosomes);
   }
@@ -47,12 +47,12 @@ function agentFromChromosome(chromosome, index){
   var radius = min(canvas_height, canvas_height) / 2 - 40;
   agent.id = index;
   agent.angle = angle + PI;
-  agent.net = chromosome.geneToNet();
+  agent.net = chromosome.copy().geneToNet();
   agent.pos = createVector(cos(angle) * radius, sin(angle) * radius);
   agent.pos.add(createVector(canvas_width / 2, canvas_height / 2));
   return agent;
 }
-const steps = 300;
+const steps = 600;
 var frame = 0;
 function testPopulation(population){
   var relFitness = []
@@ -78,9 +78,11 @@ function fittest(relFitness){
     arr.push([relFitness[i], i]);
   }
   function cmp(a, b){
-    return a[0] > b[0];
+    if(a[0] < b[0]) return 1;
+    else return -1;
   }
   arr.sort(cmp);
+  //console.log(arr);
   var best = [];
   for(var i = 0; i < relFitness.length * 0.2; i++){
     best.push(arr[i][1]);
@@ -140,8 +142,8 @@ function checkCollisions(){
     for(var j = 0; j < agents.length; j++){
       if(i == j || agents[j].dead) continue;
       if(collidePolyPoly(agent_poly, agents[j].poly)){
-        agents[i].score++;
-        agents[j].score++;
+        //agents[i].score++;
+        //agents[j].score++;
         agents[i].kill();
         agents[j].kill();
       }
@@ -149,8 +151,8 @@ function checkCollisions(){
     for(var bullet of bullets){
       if(bullet.creator != agents[i].id && collideCirclePoly(bullet.pos.x, bullet.pos.y, bullet_radius * 2, agent_poly)){
         agents[i].kill();
-        //agents[i].score -= 3;
-        //agents[bullet.creator].score++;
+        agents[i].score -= 10;
+        agents[bullet.creator].score++;
         bullets.delete(bullet);
         break;
       }

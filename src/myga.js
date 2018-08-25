@@ -7,10 +7,10 @@ function Chromosome(net) {
   this.randomNet = function(){
     var layer_defs = [];
     // input layer of size 1x1x2 (all volumes are 3D)
-    layer_defs.push({type:'input', out_sx:13, out_sy:1});
+    layer_defs.push({type:'input', out_sx:13, out_sy:1, out_depth:1});
     // some fully connected layers
-    layer_defs.push({type:'fc', num_neurons:10, activation:'relu'});
-    layer_defs.push({type:'fc', num_neurons:10, activation:'relu'});
+    layer_defs.push({type:'fc', num_neurons:10, activation:'sigmoid'});
+    layer_defs.push({type:'fc', num_neurons:10, activation:'sigmoid'});
     // a softmax classifier predicting probabilities for two classes: 0,1
     layer_defs.push({type:'regression', num_neurons:3});
     
@@ -20,20 +20,22 @@ function Chromosome(net) {
   }
   this.mutate = function () {
     var n = this.gene.length;
-    for(var i = 0; i <= n; i++){
-      this.gene[i] = randomNoise(this.gene[i]);
+    for(var i = 0; i < n; i++){
+      this.gene[i] += randomNoise(0);
+      //console.log(randomNoise(this.gene[i]));
     }
   }
   this.crossover = function (chromosome) {  //simple 1 point
     var n = chromosome.gene.length;
     var idx = Math.floor(Math.random() * n);  //idx is crossover point
+    var c = chromosome.copy();
     for(var i = 0; i <= idx; i++){
-      this.gene[i] = chromosome.gene[i];
+      this.gene[i] = c.gene[i];
     }
   }
   this.copy = function(){
     var copy = new Chromosome();
-    copy.gene = this.gene;
+    copy.gene = this.gene.slice();
     return copy;
   }
   this.geneToNet = function () {
@@ -98,32 +100,36 @@ function Chromosome(net) {
   else this.gene = this.netToGene(this.randomNet());
 }
 
-const PopulationSize = 40;
+const PopulationSize = 200;
 
 function Population() {
   this.Chromosomes = [];
-  this.size = PopulationSize;
   
   this.randomPopulation = function () {
-    for(var i = 0; i < this.size; i++){
+    for(var i = 0; i < PopulationSize; i++){
       var Chrome = new Chromosome();
       this.Chromosomes.push(Chrome);
     }
   }
   this.newGeneration = function (chromosomes) {
     this.Chromosomes = [];
+    for(var i = 0; i < chromosomes.length; i++){
+      this.Chromosomes.push(chromosomes[i].copy());
+      this.Chromosomes[i].mutate();
+    }
     while(this.Chromosomes.length < PopulationSize){
       var a = randomElement(chromosomes).copy();
       var b = randomElement(chromosomes).copy();
       a.crossover(b);
       a.mutate();
+      
       this.Chromosomes.push(a);
     }
   }
 }
 
 function randomNoise(x){
-  return x += convnetjs.randn(0.0, 0.3);
+  return x + convnetjs.randn(0.0, 1);
 }
 
 function randomElement(array){
