@@ -7,10 +7,10 @@ function Chromosome(net) {
   this.randomNet = function(){
     var layer_defs = [];
     // input layer of size 1x1x2 (all volumes are 3D)
-    layer_defs.push({type:'input', out_sx:13, out_sy:1, out_depth:1});
+    layer_defs.push({type:'input', out_sx:16, out_sy:1, out_depth:1});
     // some fully connected layers
-    layer_defs.push({type:'fc', num_neurons:10, activation:'sigmoid'});
-    layer_defs.push({type:'fc', num_neurons:10, activation:'sigmoid'});
+    layer_defs.push({type:'fc', num_neurons:20, activation:'sigmoid'});
+    layer_defs.push({type:'fc', num_neurons:20, activation:'sigmoid'});
     // a softmax classifier predicting probabilities for two classes: 0,1
     layer_defs.push({type:'regression', num_neurons:3});
     
@@ -100,7 +100,7 @@ function Chromosome(net) {
   else this.gene = this.netToGene(this.randomNet());
 }
 
-const PopulationSize = 200;
+const PopulationSize = 100;
 
 function Population() {
   this.Chromosomes = [];

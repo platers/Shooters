@@ -2,7 +2,7 @@
 const canvas_width = 1100;
 const canvas_height = 800;
 const turn_speed = 0.1;
-const accelation = 0.08;
+const accelation = 0.1;
 const max_bullets = 4;
 const ship_size = 20;
 const bullet_speed = 7;
@@ -58,13 +58,7 @@ function testPopulation(population){
   var relFitness = []
   for(var i = 0; i < population.Chromosomes.length; i++){
     var chromosome = population.Chromosomes[i];
-    var batch = [];
-    batch.push(agentFromChromosome(chromosome, 0));
-    for(var j = 1; j <= batch_size - 1; j++){
-      chromosome = population.Chromosomes[Math.floor(Math.random() * population.Chromosomes.length)];
-      batch.push(agentFromChromosome(chromosome, j));
-    }
-    var fitness = simulate(batch, steps);
+    var fitness = simulate(agentFromChromosome(chromosome, 0), population, steps);
     relFitness.push(fitness);
   }
   var best = fittest(relFitness);
@@ -90,19 +84,28 @@ function fittest(relFitness){
   return best;
 }
 
-function simulate(batch, steps){
-  resetEnvorionment();
-  agents = batch;
-  frame = 0;
-  for(var i = 0; i < steps; i++){
-    //drawBackground();
-    update();
-    if(agents[0].dead){
-      break;
+function simulate(agent, population, steps){
+  var fitness = 0;
+  for(var i = 0; i < 2; i++){
+    var batch = [];
+    batch.push(agent);
+    for(var j = 1; j <= batch_size - 1; j++){
+      var chromosome = population.Chromosomes[Math.floor(Math.random() * population.Chromosomes.length)];
+      batch.push(agentFromChromosome(chromosome, j));
     }
+    resetEnvorionment();
+    agents = batch;
+    frame = 0;
+    for(var i = 0; i < steps; i++){
+      //drawBackground();
+      update();
+      if(agents[0].dead){
+        break;
+      }
+    }
+    fitness += agents[0].score;
   }
-  //console.log(agents[0].score);
-  return agents[0].score;
+  return fitness / 2;
 }
 
 function keyPressed(){
@@ -149,9 +152,13 @@ function checkCollisions(){
       }
     }
     for(var bullet of bullets){
+      if(!bullet.inBounds()){
+        bullets.delete(bullet);
+        continue;
+      }
       if(bullet.creator != agents[i].id && collideCirclePoly(bullet.pos.x, bullet.pos.y, bullet_radius * 2, agent_poly)){
         agents[i].kill();
-        agents[i].score -= 10;
+        agents[i].score--;
         agents[bullet.creator].score++;
         bullets.delete(bullet);
         break;
@@ -182,10 +189,13 @@ function getPosVel(object){ //helper
   return state;
 }
 
-function getState(agent){ //array length 13
+function getState(agent){ //array length 16
   //num bullets, agent pos + vel, closest agent pos + vel, closest bullet pos + vel
   var state = [];
   state.push(agent.bullets);
+  state.push(agent.angle);
+  state.push(agent.accelation);
+  state.push(agent.rotation);
   state.push.apply(state, getPosVel(agent));
   var minDist = -1;
   var closest = null;
@@ -204,7 +214,7 @@ function getState(agent){ //array length 13
   minDist = -1;
   closest = null;
   bullets.forEach(function(bullet){
-    if(minDist == -1 || distance(agent, bullet) < minDist){
+    if(bullet.creator != agent.id && (minDist == -1 || distance(agent, bullet) < minDist)){
       minDist = distance(agent, bullet);
       closest = bullet;
     }
@@ -266,7 +276,7 @@ function render(){
 var gameRunning = false;
 
 function draw() {
-  if(!gameRunning || frame > 60 * 5){
+  if(!gameRunning || frame > steps){
     train();
     initGame();
     gameRunning = true;

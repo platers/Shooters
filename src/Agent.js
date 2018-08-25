@@ -25,6 +25,7 @@ function Agent(){
   this.shoot = function(){
     if(this.bullets <= 0) return;
     this.bullets--;
+    this.score -= 0.1;
     var vel = p5.Vector.fromAngle(this.angle);
     vel.mult(bullet_speed);
     var bullet = new Bullet(this.id, this.pos, vel);
